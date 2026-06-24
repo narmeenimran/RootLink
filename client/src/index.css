@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Cozy minimalist palette — warm off-whites, sage, soft brown */
+  --color-background: #FAF9F7;
+  --color-foreground: #3D3630;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #3D3630;
+  --color-primary: #8B9A7D;
+  --color-primary-foreground: #FAF9F7;
+  --color-secondary: #F3EDE4;
+  --color-secondary-foreground: #5C534A;
+  --color-muted: #EDE8E0;
+  --color-muted-foreground: #8A8178;
+  --color-accent: #E8DFD0;
+  --color-accent-foreground: #3D3630;
+  --color-destructive: #C47B6B;
+  --color-destructive-foreground: #FAF9F7;
+  --color-border: #E5DDD3;
+  --color-input: #E5DDD3;
+  --color-ring: #8B9A7D;
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.375rem;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+.dark {
+  --color-background: #1C1917;
+  --color-foreground: #E8E4DF;
+  --color-card: #292524;
+  --color-card-foreground: #E8E4DF;
+  --color-primary: #9AAD88;
+  --color-primary-foreground: #1C1917;
+  --color-secondary: #3D3835;
+  --color-secondary-foreground: #D6D0C8;
+  --color-muted: #3D3835;
+  --color-muted-foreground: #A8A29E;
+  --color-accent: #44403C;
+  --color-accent-foreground: #E8E4DF;
+  --color-destructive: #D4907F;
+  --color-destructive-foreground: #1C1917;
+  --color-border: #44403C;
+  --color-input: #44403C;
+  --color-ring: #9AAD88;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation-duration: 0.3s;
+    animation-fill-mode: both;
+  }
+
+  .fade-in {
+    animation-name: fadeIn;
+  }
+
+  .slide-in-from-bottom-4 {
+    animation-name: slideInBottom;
+  }
+
+  .slide-in-from-top-4 {
+    animation-name: slideInTop;
+  }
+
+  .slide-in-from-right {
+    animation-name: slideInRight;
+  }
+
+  .zoom-in-95 {
+    animation-name: zoomIn;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideInBottom {
+    from { opacity: 0; transform: translateY(1rem); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slideInTop {
+    from { opacity: 0; transform: translateY(-1rem); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(1rem); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+}
