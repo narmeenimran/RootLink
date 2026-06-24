@@ -136,6 +136,16 @@ export interface FamilyCardData {
   children: FamilyMember[];
 }
 
+export interface ExpandedChildUnit {
+  member: FamilyMember;
+  spouse: FamilyMember | null;
+  branchHeadId: string | null;
+}
+
+export interface ExpandedFamilyData extends FamilyCardData {
+  childUnits: ExpandedChildUnit[];
+}
+
 export interface BreadcrumbItem {
   label: string;
   headId: string;

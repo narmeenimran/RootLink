@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, UserPlus } from 'lucide-react';
+import { Plus, UserPlus, Trash2 } from 'lucide-react';
 import type { FamilyCardData, FamilyMember, Gender, MemberRole } from '@/types';
 import { familyService } from '@/services/familyService';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -121,13 +121,13 @@ export function FamilyCardView({ data, onOpenBranch }: FamilyCardViewProps) {
           )}
         </div>
         {spouse ? (
-          <Card>
+          <Card className="group relative">
             <CardContent className="flex items-center gap-4 p-4">
               <Avatar className="h-16 w-16">
                 <AvatarImage src={spouse.profile_image_url ?? undefined} />
                 <AvatarFallback name={spouse.full_name} />
               </Avatar>
-              <div>
+              <div className="flex-1">
                 <p className="font-semibold">{spouse.full_name}</p>
                 {spouse.date_of_birth && (
                   <p className="text-sm text-muted-foreground">
@@ -135,6 +135,19 @@ export function FamilyCardView({ data, onOpenBranch }: FamilyCardViewProps) {
                   </p>
                 )}
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:text-destructive"
+                onClick={() => {
+                  if (confirm(`Remove ${spouse.full_name}?`)) {
+                    deleteMemberMutation.mutate(spouse.id);
+                  }
+                }}
+                aria-label={`Delete ${spouse.full_name}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </CardContent>
           </Card>
         ) : (

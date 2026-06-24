@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/utils';
 import {
   getTreeConnectorPath,
-  TREE_CANVAS_PADDING,
   TREE_CARD_HEIGHT,
   TREE_CARD_WIDTH,
 } from '@/utils/familyTreeLayout';

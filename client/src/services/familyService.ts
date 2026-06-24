@@ -4,6 +4,7 @@ import type {
   CreateMemberInput,
   DashboardStats,
   Document,
+  ExpandedFamilyData,
   FamilyCardData,
   FamilyEvent,
   FamilyHead,
@@ -81,6 +82,55 @@ export const familyService = {
       spouse,
       children,
     };
+  },
+
+  async getExpandedFamily(headId: string): Promise<ExpandedFamilyData> {
+    const card = await familyService.getFamilyCard(headId);
+    const maleChildren = card.children.filter((child) => child.gender === 'male');
+
+    const branchHeadsByMemberId = new Map<string, { headId: string; spouse: FamilyMember | null }>();
+    if (maleChildren.length) {
+      const maleIds = maleChildren.map((child) => child.id);
+      const { data: branchHeads, error: branchError } = await supabase
+        .from('family_heads')
+        .select('*')
+        .in('parent_member_id', maleIds);
+      if (branchError) throw branchError;
+
+      if (branchHeads?.length) {
+        const branchHeadIds = branchHeads.map((head) => head.id);
+        const { data: branchSpouses, error: spouseError } = await supabase
+          .from('family_members')
+          .select('*')
+          .in('family_head_id', branchHeadIds)
+          .eq('role', 'spouse');
+        if (spouseError) throw spouseError;
+
+        const spouseByHeadId = new Map<string, FamilyMember>();
+        for (const spouse of branchSpouses ?? []) {
+          spouseByHeadId.set(spouse.family_head_id, spouse);
+        }
+
+        for (const branchHead of branchHeads) {
+          if (!branchHead.parent_member_id) continue;
+          branchHeadsByMemberId.set(branchHead.parent_member_id, {
+            headId: branchHead.id,
+            spouse: spouseByHeadId.get(branchHead.id) ?? null,
+          });
+        }
+      }
+    }
+
+    const childUnits = card.children.map((member) => {
+      const branch = branchHeadsByMemberId.get(member.id);
+      return {
+        member,
+        spouse: branch?.spouse ?? null,
+        branchHeadId: branch?.headId ?? null,
+      };
+    });
+
+    return { ...card, childUnits };
   },
 
   async createFamilyHead(

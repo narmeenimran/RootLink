@@ -4,11 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { GitBranch, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { familyService } from '@/services/familyService';
-import { FamilyTreeCanvas } from '@/components/family/FamilyTreeCanvas';
-import { FamilyTreePanel } from '@/components/family/FamilyTreePanel';
+import { ExpandedFamilyDiagram } from '@/components/family/ExpandedFamilyDiagram';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { EmptyState, PageLoader } from '@/components/ui/spinner';
-import { formatErrorMessage } from '@/utils';
+import { cn, formatErrorMessage } from '@/utils';
 
 export function FamilyTreePage() {
   const { user } = useAuth();
@@ -17,53 +17,70 @@ export function FamilyTreePage() {
     searchParams.get('head')
   );
 
-  const { data: layout, isLoading, isError, error } = useQuery({
-    queryKey: ['family-tree'],
-    queryFn: familyService.getFamilyTreeLayout,
+  const {
+    data: heads,
+    isLoading: headsLoading,
+    isError: headsError,
+    error: headsFetchError,
+  } = useQuery({
+    queryKey: ['family-heads'],
+    queryFn: familyService.getAllHeads,
     enabled: !!user,
+  });
+
+  const {
+    data: expandedFamily,
+    isLoading: familyLoading,
+    isError: familyError,
+  } = useQuery({
+    queryKey: ['expanded-family', selectedHeadId],
+    queryFn: () => familyService.getExpandedFamily(selectedHeadId!),
+    enabled: !!user && !!selectedHeadId,
   });
 
   useEffect(() => {
     const headFromUrl = searchParams.get('head');
-    if (headFromUrl) setSelectedHeadId(headFromUrl);
+    setSelectedHeadId(headFromUrl);
   }, [searchParams]);
 
   const handleSelectHead = (headId: string) => {
-    setSelectedHeadId(headId);
-    setSearchParams({ head: headId });
+    const next = selectedHeadId === headId ? null : headId;
+    setSelectedHeadId(next);
+    if (next) {
+      setSearchParams({ head: next });
+    } else {
+      setSearchParams({});
+    }
   };
 
-  const handleClosePanel = () => {
-    setSelectedHeadId(null);
-    setSearchParams({});
-  };
+  if (headsLoading) return <PageLoader />;
 
-  if (isLoading) return <PageLoader />;
-
-  if (isError) {
+  if (headsError) {
     return (
       <div className="py-12 text-center text-muted-foreground">
-        Unable to load family tree.
-        <div className="mt-2 text-sm text-destructive">{formatErrorMessage(error)}</div>
+        Unable to load families.
+        <div className="mt-2 text-sm text-destructive">
+          {formatErrorMessage(headsFetchError)}
+        </div>
       </div>
     );
   }
 
-  const hasNodes = (layout?.nodes.length ?? 0) > 0;
+  const hasHeads = (heads?.length ?? 0) > 0;
 
   return (
-    <div className="-m-4 flex h-[calc(100vh-4rem)] flex-col sm:-m-6 lg:-m-8">
-      <div className="flex shrink-0 flex-col gap-3 border-b border-border bg-background/80 px-4 py-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
-            <GitBranch className="h-5 w-5 text-primary" />
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+            <GitBranch className="h-6 w-6 text-primary" />
             Family Tree
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Pan around the canvas and click any family head to open their card
+          <p className="text-muted-foreground">
+            All family heads are shown below — click one to expand their family
           </p>
         </div>
-        {!hasNodes && (
+        {!hasHeads && (
           <Button asChild>
             <Link to="/families">
               <Plus className="h-4 w-4" />
@@ -73,32 +90,103 @@ export function FamilyTreePage() {
         )}
       </div>
 
-      {!hasNodes ? (
-        <div className="flex flex-1 items-center justify-center p-6">
-          <EmptyState
-            title="No family tree yet"
-            description="Create a family head first, then open branches from sons to grow your connected tree."
-            action={
-              <Button asChild>
-                <Link to="/families">
-                  <Plus className="h-4 w-4" />
-                  Go to Families
-                </Link>
-              </Button>
-            }
-          />
-        </div>
+      {!hasHeads ? (
+        <EmptyState
+          title="No family heads yet"
+          description="Create a family head first, then come back here to view and expand each family."
+          action={
+            <Button asChild>
+              <Link to="/families">
+                <Plus className="h-4 w-4" />
+                Go to Families
+              </Link>
+            </Button>
+          }
+        />
       ) : (
-        <div className="relative min-h-0 flex-1 p-3 sm:p-4">
-          <FamilyTreeCanvas
-            layout={layout!}
-            selectedHeadId={selectedHeadId}
-            onSelectHead={handleSelectHead}
-          />
+        <>
+          <section>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Family Heads
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {heads!.map((head) => {
+                const selected = selectedHeadId === head.id;
+                return (
+                  <button
+                    key={head.id}
+                    type="button"
+                    onClick={() => handleSelectHead(head.id)}
+                    className={cn(
+                      'flex items-center gap-3 rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      selected
+                        ? 'border-primary ring-2 ring-primary/25 shadow-md'
+                        : 'border-border hover:border-primary/40'
+                    )}
+                  >
+                    <Avatar className="h-12 w-12 shrink-0 ring-2 ring-primary/15">
+                      <AvatarImage src={head.member?.profile_image_url ?? undefined} />
+                      <AvatarFallback
+                        name={head.member?.full_name ?? 'FH'}
+                        className="bg-primary/10 text-primary text-xs"
+                      />
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">
+                        {head.member?.full_name ?? 'Family Head'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Gen {head.generation}
+                        {head.parent_head_id ? ' · Branch' : ' · Root'}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           {selectedHeadId && (
-            <FamilyTreePanel headId={selectedHeadId} onClose={handleClosePanel} />
+            <section className="animate-in fade-in slide-in-from-top-4 duration-300">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold">
+                    {expandedFamily
+                      ? `${expandedFamily.headMember.full_name}'s Family`
+                      : 'Family'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Family head and spouse connected in red · children in blue/pink · click delete to remove a member
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/family/${selectedHeadId}`}>Manage family</Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleSelectHead(selectedHeadId)}>
+                    Collapse
+                  </Button>
+                </div>
+              </div>
+
+              {familyLoading && <PageLoader />}
+              {familyError && (
+                <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                  Could not load this family.
+                </p>
+              )}
+              {expandedFamily && (
+                <ExpandedFamilyDiagram data={expandedFamily} headId={selectedHeadId} />
+              )}
+            </section>
           )}
-        </div>
+
+          {!selectedHeadId && (
+            <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              Select a family head above to expand their family tree view
+            </p>
+          )}
+        </>
       )}
     </div>
   );
